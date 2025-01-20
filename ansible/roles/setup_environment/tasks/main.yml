@@ -1,0 +1,30 @@
+---
+# Verify the dissemination binary exists
+- name: Verify dissemination binary exists
+  ansible.builtin.stat:
+    path: "{{ app_path }}/dissemination"
+  register: dissemination_binary
+
+# Fail if the dissemination binary does not exist
+- name: Ensure dissemination binary is available
+  ansible.builtin.fail:
+    msg: "Dissemination binary not found at {{ app_path }}/dissemination"
+  when: not dissemination_binary.stat.exists
+
+# Generate the configuration file for the node
+- name: Generate configuration for the node
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/node_config.j2"
+    dest: "{{ app_path }}/node_config_{{ inventory_hostname }}.conf"
+  vars:
+    node_port: "{{ hostvars[inventory_hostname].port | default(node_ports[inventory_hostname]) }}"
+    log_file: "{{ log_path }}/dissemination_{{ inventory_hostname }}.log"
+
+# Start the dissemination application
+- name: Start dissemination application
+  ansible.builtin.shell: |
+    nohup {{ app_path }}/dissemination \
+    --config {{ app_path }}/node_config_{{ inventory_hostname }}.conf \
+    >> {{ log_path }}/dissemination_{{ inventory_hostname }}.log 2>&1 &
+  args:
+    executable: /bin/bash

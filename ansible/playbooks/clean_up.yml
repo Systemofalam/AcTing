@@ -1,0 +1,37 @@
+- name: Clean Up Dissemination Environment
+  hosts: all
+  become: no
+  vars:
+    app_dir: "{{ playbook_dir }}/../roles/setup_environment/files"
+    config_dir: "{{ app_dir }}/configs"
+    log_dir: "{{ playbook_dir }}/../logs"
+
+  tasks:
+    - name: Kill dissemination processes if running
+      ansible.builtin.shell: |
+        pgrep -f dissemination && pkill -9 -f dissemination || echo "No dissemination processes found."
+      args:
+        executable: /bin/bash
+      register: kill_process_result
+      ignore_errors: true
+
+    - name: Free UDP ports used by dissemination
+      ansible.builtin.shell: |
+        lsof -tiUDP | grep dissemination | xargs -r kill -9 || echo "No UDP ports to free."
+      args:
+        executable: /bin/bash
+      register: port_cleanup_result
+      ignore_errors: true
+
+    - name: Remove logs, configurations, and binary
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - "{{ log_dir }}"
+        - "{{ config_dir }}"
+        - "{{ app_dir }}/dissemination"
+      ignore_errors: true
+
+    - name: Ensure cleanup is logged
+      ansible.builtin.shell: echo "Cleanup completed on {{ inventory_hostname }}" >> /tmp/cleanup.log

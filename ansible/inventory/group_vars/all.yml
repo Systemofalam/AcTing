@@ -1,0 +1,35 @@
+# Global variables for all hosts
+ansible_python_interpreter: /usr/bin/python3
+
+# Relative path to the application directory
+app_path: "{{ playbook_dir }}/../roles/setup_environment/files"
+
+# Port base for the nodes (dynamic calculation for each node based on its ID)
+port_base: 5000
+
+# Total number of nodes
+num_nodes: 20
+
+# The source node that initiates dissemination
+source_node: node1
+
+# Relative path to the logs directory
+log_path: "{{ playbook_dir }}/../../logs/dissemination.log"
+
+# Path to the data file to be disseminated
+data_file: "{{ playbook_dir }}/../roles/setup_environment/data/test_data_file"
+
+# Duration of dissemination in seconds
+dissemination_duration: 300
+
+# Chunk size in bytes to simulate video chunks
+chunk_size: 1024
+
+# Data rate for dissemination (300 kbps, converted to bytes per second)
+dissemination_rate: 37500
+
+# Number of random nodes to propose updates to in each round
+propose_targets: 5
+
+# Interval between dissemination rounds (in seconds)
+round_interval: 1

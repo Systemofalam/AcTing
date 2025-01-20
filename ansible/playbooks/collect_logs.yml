@@ -1,0 +1,16 @@
+---
+- name: Collect Dissemination Logs
+  hosts: all
+  become: yes
+  tasks:
+    - name: Create local logs directory
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../../logs/"
+        state: directory
+
+    - name: Fetch logs from remote nodes
+      ansible.builtin.fetch:
+        src: "{{ log_path }}"
+        dest: "{{ playbook_dir }}/../../logs/"
+        flat: yes
