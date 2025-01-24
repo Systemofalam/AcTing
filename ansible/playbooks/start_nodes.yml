@@ -73,7 +73,7 @@
 
     - name: Stop tshark after capture
       ansible.builtin.shell: |
-        pkill -f "tshark.*tcp port {{ ansible_port }}"
+        pkill -f "tshark.*udp port {{ ansible_port }}"
       args:
         executable: /bin/bash
       when: ansible_port is defined

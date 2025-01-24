@@ -1,0 +1,267 @@
+[2025-01-23 16:02:26] Parsing configuration file...
+[2025-01-23 16:02:26] Configuration parsed successfully: Node ID = node1
+[2025-01-23 16:02:26] Parsing hosts file...
+[2025-01-23 16:02:26] Hosts file parsed successfully.
+[2025-01-23 16:02:26] Parsed node database:
+[2025-01-23 16:02:26] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 16:02:26] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 16:02:26] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 16:02:26] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 16:02:26] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 16:02:26] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 16:02:26] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 16:02:26] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 16:02:26] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 16:02:26] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 16:02:26] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 16:02:26] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 16:02:26] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 16:02:26] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 16:02:26] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 16:02:26] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 16:02:26] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 16:02:26] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 16:02:26] Adding current node to membership...
+[2025-01-23 16:05:04] Parsing configuration file...
+[2025-01-23 16:05:04] Configuration parsed successfully: Node ID = node1
+[2025-01-23 16:05:04] Parsing hosts file...
+[2025-01-23 16:05:04] Hosts file parsed successfully.
+[2025-01-23 16:05:04] Parsed node database:
+[2025-01-23 16:05:04] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 16:05:04] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 16:05:04] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 16:05:04] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 16:05:04] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 16:05:04] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 16:05:04] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 16:05:04] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 16:05:04] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 16:05:04] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 16:05:04] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 16:05:04] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 16:05:04] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 16:05:04] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 16:05:04] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 16:05:04] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 16:05:04] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 16:05:04] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 16:05:04] Adding current node to membership...
+[2025-01-23 16:05:07] Parsing configuration file...
+[2025-01-23 16:05:07] Configuration parsed successfully: Node ID = node2
+[2025-01-23 16:05:07] Parsing hosts file...
+[2025-01-23 16:05:07] Hosts file parsed successfully.
+[2025-01-23 16:05:07] Parsed node database:
+[2025-01-23 16:05:07] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 16:05:07] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 16:05:07] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 16:05:07] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 16:05:07] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 16:05:07] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 16:05:07] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 16:05:07] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 16:05:07] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 16:05:07] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 16:05:07] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 16:05:07] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 16:05:07] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 16:05:07] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 16:05:07] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 16:05:07] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 16:05:07] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 16:05:07] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 16:05:07] Adding current node to membership...
+[2025-01-23 16:06:44] Parsing configuration file...
+[2025-01-23 16:06:44] Configuration parsed successfully: Node ID = node1
+[2025-01-23 16:06:44] Parsing hosts file...
+[2025-01-23 16:06:44] Hosts file parsed successfully.
+[2025-01-23 16:06:44] Parsed node database:
+[2025-01-23 16:06:44] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 16:06:44] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 16:06:44] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 16:06:44] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 16:06:44] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 16:06:44] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 16:06:44] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 16:06:44] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 16:06:44] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 16:06:44] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 16:06:44] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 16:06:44] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 16:06:44] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 16:06:44] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 16:06:44] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 16:06:44] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 16:06:44] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 16:06:44] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 16:06:44] Adding current node to membership...
+[2025-01-23 16:17:56] Parsing configuration file...
+[2025-01-23 16:17:56] Configuration parsed successfully: Node ID = node1
+[2025-01-23 16:17:56] Parsing hosts file...
+[2025-01-23 16:17:56] Hosts file parsed successfully.
+[2025-01-23 16:17:56] Parsed node database:
+[2025-01-23 16:17:56] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 16:17:56] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 16:17:56] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 16:17:56] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 16:17:56] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 16:17:56] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 16:17:56] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 16:17:56] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 16:17:56] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 16:17:56] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 16:17:56] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 16:17:56] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 16:17:56] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 16:17:56] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 16:17:56] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 16:17:56] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 16:17:56] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 16:17:56] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 16:17:56] Adding current node to membership...
+[2025-01-23 16:17:56] Starting join request thread...
+[2025-01-23 16:17:56] Determining if this node is the source node...
+[2025-01-23 16:17:56] Starting node loop thread...
+[2025-01-23 16:17:56] Waiting for threads to complete...
+[2025-01-23 17:10:04] Parsing configuration file...
+[2025-01-23 17:12:17] Parsing configuration file...
+[2025-01-23 17:12:40] Parsing configuration file...
+[2025-01-23 17:12:40] Configuration parsed successfully: Node ID = node1
+[2025-01-23 17:12:40] Parsing hosts file...
+[2025-01-23 17:12:40] Hosts file parsed successfully.
+[2025-01-23 17:12:40] Parsed node database:
+[2025-01-23 17:12:40] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 17:12:40] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 17:12:40] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 17:12:40] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 17:12:40] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 17:12:40] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 17:12:40] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 17:12:40] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 17:12:40] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 17:12:40] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 17:12:40] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 17:12:40] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 17:12:40] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 17:12:40] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 17:12:40] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 17:12:40] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 17:12:40] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 17:12:40] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 17:12:40] Adding current node to membership...
+[2025-01-23 17:12:40] Starting join request thread...
+[2025-01-23 17:12:40] Determining if this node is the source node...
+[2025-01-23 17:12:40] Starting node loop thread...
+[2025-01-23 17:12:40] Waiting for threads to complete...
+[2025-01-23 17:12:45] All threads completed. Shutting down.
+[2025-01-23 17:16:56] Parsing configuration file...
+[2025-01-23 17:16:56] Configuration parsed successfully: Node ID = node1
+[2025-01-23 17:16:56] Parsing hosts file...
+[2025-01-23 17:16:56] Hosts file parsed successfully.
+[2025-01-23 17:16:56] Parsed node database:
+[2025-01-23 17:16:56] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 17:16:56] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 17:16:56] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 17:16:56] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 17:16:56] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 17:16:56] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 17:16:56] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 17:16:56] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 17:16:56] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 17:16:56] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 17:16:56] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 17:16:56] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 17:16:56] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 17:16:56] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 17:16:56] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 17:16:56] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 17:16:56] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 17:16:56] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 17:16:56] Adding current node to membership...
+[2025-01-23 17:16:56] Starting join request thread...
+[2025-01-23 17:16:56] Determining if this node is the source node...
+[2025-01-23 17:16:56] Starting node loop thread...
+[2025-01-23 17:16:56] Waiting for threads to complete...
+[2025-01-23 17:18:50] Parsing configuration file...
+[2025-01-23 17:18:50] Configuration parsed successfully: Node ID = node1
+[2025-01-23 17:18:50] Parsing hosts file...
+[2025-01-23 17:18:50] Hosts file parsed successfully.
+[2025-01-23 17:18:50] Parsed node database:
+[2025-01-23 17:18:50] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 17:18:50] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 17:18:50] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 17:18:50] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 17:18:50] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 17:18:50] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 17:18:50] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 17:18:50] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 17:18:50] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 17:18:50] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 17:18:50] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 17:18:50] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 17:18:50] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 17:18:50] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 17:18:50] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 17:18:50] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 17:18:50] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 17:18:50] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 17:18:50] Adding current node to membership...
+[2025-01-23 17:18:50] Starting join request thread...
+[2025-01-23 17:18:50] Determining if this node is the source node...
+[2025-01-23 17:18:50] Starting node loop thread...
+[2025-01-23 17:18:50] Waiting for threads to complete...
+[2025-01-23 17:19:31] Parsing configuration file...
+[2025-01-23 17:19:31] Configuration parsed successfully: Node ID = node1
+[2025-01-23 17:19:31] Parsing hosts file...
+[2025-01-23 17:19:31] Hosts file parsed successfully.
+[2025-01-23 17:19:31] Parsed node database:
+[2025-01-23 17:19:31] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-23 17:19:31] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-23 17:19:31] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-23 17:19:31] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-23 17:19:31] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-23 17:19:31] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-23 17:19:31] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-23 17:19:31] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-23 17:19:31] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-23 17:19:31] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-23 17:19:31] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-23 17:19:31] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-23 17:19:31] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-23 17:19:31] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-23 17:19:31] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-23 17:19:31] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-23 17:19:31] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-23 17:19:31] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-23 17:19:31] Adding current node to membership...
+[2025-01-23 17:19:31] Starting join request thread...
+[2025-01-23 17:19:31] Determining if this node is the source node...
+[2025-01-23 17:19:31] Starting node loop thread...
+[2025-01-23 17:19:31] Waiting for threads to complete...
+[2025-01-24 11:21:16] Parsing configuration file...
+[2025-01-24 11:21:16] Configuration parsed successfully: Node ID = node1
+[2025-01-24 11:21:16] Parsing hosts file...
+[2025-01-24 11:21:16] Hosts file parsed successfully.
+[2025-01-24 11:21:16] Parsed node database:
+[2025-01-24 11:21:16] NodeID: node16, IP: 127.0.0.1, Port: 7116
+[2025-01-24 11:21:16] NodeID: node17, IP: 127.0.0.1, Port: 7117
+[2025-01-24 11:21:16] NodeID: node14, IP: 127.0.0.1, Port: 7114
+[2025-01-24 11:21:16] NodeID: node2, IP: 127.0.0.1, Port: 7102
+[2025-01-24 11:21:16] NodeID: node12, IP: 127.0.0.1, Port: 7112
+[2025-01-24 11:21:16] NodeID: node18, IP: 127.0.0.1, Port: 7118
+[2025-01-24 11:21:16] NodeID: node10, IP: 127.0.0.1, Port: 7110
+[2025-01-24 11:21:16] NodeID: node13, IP: 127.0.0.1, Port: 7113
+[2025-01-24 11:21:16] NodeID: node9, IP: 127.0.0.1, Port: 7109
+[2025-01-24 11:21:16] NodeID: node8, IP: 127.0.0.1, Port: 7108
+[2025-01-24 11:21:16] NodeID: node6, IP: 127.0.0.1, Port: 7106
+[2025-01-24 11:21:16] NodeID: node19, IP: 127.0.0.1, Port: 7119
+[2025-01-24 11:21:16] NodeID: node7, IP: 127.0.0.1, Port: 7107
+[2025-01-24 11:21:16] NodeID: node20, IP: 127.0.0.1, Port: 7120
+[2025-01-24 11:21:16] NodeID: node4, IP: 127.0.0.1, Port: 7104
+[2025-01-24 11:21:16] NodeID: node11, IP: 127.0.0.1, Port: 7111
+[2025-01-24 11:21:16] NodeID: node3, IP: 127.0.0.1, Port: 7103
+[2025-01-24 11:21:16] NodeID: node1, IP: 127.0.0.1, Port: 7101
+[2025-01-24 11:21:16] Adding current node to membership...
+[2025-01-24 11:21:16] Starting join request thread...
+[2025-01-24 11:21:16] Determining if this node is the source node...
+[2025-01-24 11:21:16] Starting node loop thread...
+[2025-01-24 11:21:16] Waiting for threads to complete...
