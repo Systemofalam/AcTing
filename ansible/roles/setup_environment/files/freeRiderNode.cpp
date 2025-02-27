@@ -50,9 +50,6 @@ std::unordered_map<std::string, std::string> chunkStorage;
 std::unordered_set<std::string> ownedChunks;
 bool loadedAlready = false;
 
-std::unordered_set<std::string> globalSuspectedNodes;
-std::mutex suspectedNodesMutex;
-
 std::vector<std::pair<sockaddr_in, std::string>>
 
 timedReceiveAll(int sockFd,
@@ -97,134 +94,306 @@ void nodeLoopOneRound(
     int roundNumber,
     const NodeConfig &config,
     const std::unordered_map<std::string, NodeInfo> &nodeDatabase,
-    bool isSourceNode,
-    const std::vector<std::string> &partners)
+    bool isSourceNode, const std::vector<std::string>& Partners)
 {
-    // 1) Create and bind our socket.
+    // 0) Create & bind a socket
     int sockFd = createAndBindSocket(config.port, config.logFile);
     if (sockFd < 0) {
-        logMessage("Error: Could not bind socket on port " + std::to_string(config.port), config.logFile);
+        logMessage("Error: Could not bind socket on port " + std::to_string(config.port),
+                   config.logFile);
         return;
     }
-    logMessage("Node " + config.nodeId + " bound to port " + std::to_string(config.port) +
-               " for optimized round " + std::to_string(roundNumber), config.logFile);
+    logMessage("Node " + config.nodeId + " bound to port "
+               + std::to_string(config.port) + " for round "
+               + std::to_string(roundNumber),
+               config.logFile);
 
-    // 2) If we are the source node and haven't loaded data yet, load the chunks.
+    // 1) If source node & not loaded, load data from file
     if (isSourceNode && !loadedAlready) {
         loadedAlready = true;
-        logMessage("Node " + config.nodeId + " is SOURCE. Loading data from " + config.dataFile, config.logFile);
+        logMessage("Node " + config.nodeId + " is SOURCE. Loading data from "
+                   + config.dataFile,
+                   config.logFile);
+
         std::vector<std::string> fileChunks = readDataChunks(config.dataFile);
         for (size_t i = 0; i < fileChunks.size(); i++) {
             std::string cid = std::to_string(i);
             ownedChunks.insert(cid);
             chunkStorage[cid] = fileChunks[i];
         }
-        logMessage("Node " + config.nodeId + " loaded " +
-                   std::to_string(fileChunks.size()) + " chunks.", config.logFile);
+        logMessage("Node " + config.nodeId + " loaded "
+                   + std::to_string(fileChunks.size()) + " chunks.",
+                   config.logFile);
     }
 
-    // 3) Log the chunks we currently own.
+    // 2) Set up Partnerships for this roundm
+    //    (max 5 partners, period=3 is just an example)
+    std::ostringstream oss;
+    oss << "Using external partners: ";
+    for (const auto &pid : Partners)
+        oss << pid << " ";
+    logMessage(oss.str(), config.logFile);
+
+    // 3) Log the chunks we currently own
     {
         std::ostringstream oss;
-        oss << "Node " << config.nodeId << " owns " << ownedChunks.size()
-            << " chunk(s) before round " << roundNumber << ": [";
+        oss << "Node " << config.nodeId << " owns "
+            << ownedChunks.size() << " chunk(s) before round "
+            << roundNumber << ": [";
         bool first = true;
-        for (const auto &cid : ownedChunks) {
+        for (auto &c : ownedChunks) {
             if (!first) oss << ", ";
             first = false;
-            oss << cid;
+            oss << c;
         }
         oss << "]";
         logMessage(oss.str(), config.logFile);
     }
 
-    // 4) Send out chunk proposals immediately to all current partners.
-    for (const auto &pid : partners) {
-        auto it = nodeDatabase.find(pid);
-        if (it == nodeDatabase.end()) {
-            logMessage("Error: partner " + pid + " not found in DB", config.logFile);
-            continue;
-        }
-        const NodeInfo &pinfo = it->second;
-        sockaddr_in partnerAddr{};
-        partnerAddr.sin_family = AF_INET;
-        partnerAddr.sin_port   = htons(pinfo.port);
-        inet_pton(AF_INET, pinfo.ipAddress.c_str(), &partnerAddr.sin_addr);
-        for (const auto &cid : ownedChunks) {
-            std::string proposeMsg = "Header:Propose|Seq:" + cid;
-            sendMessageWithLog(sockFd, proposeMsg, partnerAddr, config.logFile, config.nodeId);
-            logMessage("Round " + std::to_string(roundNumber) +
-                       ": Sent PROPOSE for chunk " + cid + " to " + pid, config.logFile);
-        }
-    }
+    // We'll collect chunkIDs we need to pull in a map: partner -> set of chunkIDs
+    std::unordered_map<std::string, std::unordered_set<std::string>> pendingPulls;
 
-    // 5) Set up the round’s timing: total round duration and inactivity threshold.
-    auto roundStart = std::chrono::steady_clock::now();
-    auto lastActivity = roundStart;
-    const auto roundDuration = std::chrono::milliseconds(600);   // Total round time.
-    const auto inactivityThreshold = std::chrono::milliseconds(100); // End early if no activity.
+    try {
+        // --------------- PHASE A: PROPOSE ---------------
+        {
+            logMessage("Node " + config.nodeId + " [STATE=PROPOSE]", config.logFile);
 
-    // 6) Enter an event loop that listens and reacts to incoming messages.
-    while (std::chrono::steady_clock::now() - roundStart < roundDuration) {
-        // Use a short timeout to avoid blocking too long.
-        auto messages = timedReceiveAll(sockFd, nodeDatabase, config.logFile, 50);
-        if (!messages.empty()) {
-            lastActivity = std::chrono::steady_clock::now();
-            for (const auto &msgPair : messages) {
-                const sockaddr_in &senderAddr = msgPair.first;
-                const std::string &msg = msgPair.second;
+            // Send propose for each chunk we own to each partner
+            for (auto &pid : Partners) {
+                auto it = nodeDatabase.find(pid);
+                if (it == nodeDatabase.end()) {
+                    logMessage("Error: partner " + pid + " not in DB", config.logFile);
+                    continue;
+                }
+                const NodeInfo &pinfo = it->second;
+                sockaddr_in addr{};
+                addr.sin_family = AF_INET;
+                addr.sin_port   = htons(pinfo.port);
+                inet_pton(AF_INET, pinfo.ipAddress.c_str(), &addr.sin_addr);
+
+                for (auto &cid : ownedChunks) {
+                    std::string proposeMsg = "Header:Propose|Seq:" + cid
+                                             + "|Raw:" + chunkStorage[cid];
+                    sendMessage(sockFd, proposeMsg, addr, config.logFile);
+
+                    std::ostringstream oss;
+                    oss << "Node " << config.nodeId
+                        << " => PROPOSE chunkId=" << cid
+                        << " to " << pid;
+                    logMessage(oss.str(), config.logFile);
+                }
+            }
+
+            // Short receive to gather inbound messages after we propose
+            // We might see Propose from others, or Pull from them (or Push).
+            auto inbound = timedReceiveAll(sockFd, nodeDatabase, config.logFile, 400);
+            for (auto &pair : inbound) {
+                const sockaddr_in &senderAddr = pair.first;
+                const std::string &msg        = pair.second;
+
                 int senderPort = ntohs(senderAddr.sin_port);
                 std::string partnerId = getNodeIdFromPort(senderPort, nodeDatabase);
-                logMessage("Round " + std::to_string(roundNumber) +
-                           " received from " + partnerId + ": " + msg, config.logFile);
 
-                // React immediately based on message type.
+                std::ostringstream oss;
+                oss << "Node " << config.nodeId
+                    << " (PROPOSE phase) got from " << partnerId
+                    << " => " << msg;
+                logMessage(oss.str(), config.logFile);
+
+                // parse message
+                if (msg.find("Header:Propose") != std::string::npos) {
+                    // They propose a chunk => if we don't have it, we'll want to pull it
+                    std::string seq = extractField(msg, "Seq");
+                    if (!seq.empty() && !ownedChunks.count(seq)) {
+                        pendingPulls[partnerId].insert(seq);
+                    }
+                }
+                else if (msg.find("Header:Pull") != std::string::npos) {
+                    // They want a chunk from us => we push if we have it
+                    std::string seq = extractField(msg, "Seq");
+                    if (!seq.empty() && ownedChunks.count(seq)) {
+                        std::string pushMsg = "Header:Push|Seq:" + seq
+                                              + "|Raw:" + chunkStorage[seq];
+                        sendMessage(sockFd, pushMsg, senderAddr, config.logFile);
+
+                        logMessage("Node " + config.nodeId
+                                   + " => PUSH chunkId=" + seq
+                                   + " to " + partnerId,
+                                   config.logFile);
+                    }
+                }
+                else if (msg.find("Header:Push") != std::string::npos) {
+                    // We store the chunk if we don't already have it
+                    std::string seq = extractField(msg, "Seq");
+                    std::string raw = extractField(msg, "Raw");
+                    if (!seq.empty() && !ownedChunks.count(seq)) {
+                        ownedChunks.insert(seq);
+                        chunkStorage[seq] = raw;
+
+                        logMessage("Node " + config.nodeId
+                                   + " STORED chunkId=" + seq
+                                   + " from " + partnerId,
+                                   config.logFile);
+                    }
+                }
+            }
+        }
+
+        // --------------- PHASE B: PULL ---------------
+        {
+            logMessage("Node " + config.nodeId + " [STATE=PULL]", config.logFile);
+
+            // 1) We might do a short read first to catch new Propose from others
+            auto inbound = timedReceiveAll(sockFd, nodeDatabase, config.logFile, 400);
+            for (auto &pair : inbound) {
+                const sockaddr_in &senderAddr = pair.first;
+                const std::string &msg        = pair.second;
+
+                int senderPort = ntohs(senderAddr.sin_port);
+                std::string partnerId = getNodeIdFromPort(senderPort, nodeDatabase);
+
+                std::ostringstream oss;
+                oss << "Node " << config.nodeId
+                    << " (PULL phase, pre-pull read) from " << partnerId
+                    << " => " << msg;
+                logMessage(oss.str(), config.logFile);
+
                 if (msg.find("Header:Propose") != std::string::npos) {
                     std::string seq = extractField(msg, "Seq");
-                    if (!seq.empty() && (ownedChunks.find(seq) == ownedChunks.end())) {
-                        // If we don't have this chunk, immediately request it.
-                        std::string pullMsg = "Header:Pull|Seq:" + seq;
-                        sendMessageWithLog(sockFd, pullMsg, senderAddr, config.logFile, config.nodeId);
-                        logMessage("Round " + std::to_string(roundNumber) +
-                                   ": Sent immediate PULL for chunk " + seq + " to " + partnerId, config.logFile);
+                    if (!seq.empty() && !ownedChunks.count(seq)) {
+                        // we want to pull it
+                        pendingPulls[partnerId].insert(seq);
                     }
                 }
                 else if (msg.find("Header:Pull") != std::string::npos) {
                     std::string seq = extractField(msg, "Seq");
-                    if (!seq.empty() && (ownedChunks.find(seq) != ownedChunks.end())) {
-                        // If the partner is requesting a chunk we have, push it immediately.
-                        std::string pushMsg = "Header:Push|Seq:" + seq +
-                                              "|Raw:" + chunkStorage[seq];
-                        sendMessageWithLog(sockFd, pushMsg, senderAddr, config.logFile, config.nodeId);
-                        logMessage("Round " + std::to_string(roundNumber) +
-                                   ": Sent immediate PUSH for chunk " + seq + " to " + partnerId, config.logFile);
+                    if (!seq.empty() && ownedChunks.count(seq)) {
+                        // push
+                        std::string pushMsg = "Header:Push|Seq:" + seq
+                                              + "|Raw:" + chunkStorage[seq];
+                        sendMessage(sockFd, pushMsg, senderAddr, config.logFile);
+
+                        logMessage("Node " + config.nodeId
+                                   + " => PUSH chunkId=" + seq
+                                   + " to " + partnerId,
+                                   config.logFile);
                     }
                 }
                 else if (msg.find("Header:Push") != std::string::npos) {
                     std::string seq = extractField(msg, "Seq");
                     std::string raw = extractField(msg, "Raw");
-                    if (!seq.empty() && (ownedChunks.find(seq) == ownedChunks.end())) {
+                    if (!seq.empty() && !ownedChunks.count(seq)) {
                         ownedChunks.insert(seq);
                         chunkStorage[seq] = raw;
-                        logMessage("Round " + std::to_string(roundNumber) +
-                                   ": Stored chunk " + seq + " from " + partnerId, config.logFile);
+
+                        logMessage("Node " + config.nodeId
+                                   + " STORED chunkId=" + seq
+                                   + " from " + partnerId,
+                                   config.logFile);
+                    }
+                }
+            }
+
+            // 2) Now send all our Pull requests
+            for (auto &kv : pendingPulls) {
+                const std::string &pid = kv.first;
+                const auto &seqs       = kv.second;
+
+                auto it = nodeDatabase.find(pid);
+                if (it == nodeDatabase.end()) {
+                    logMessage("Error: partner " + pid + " not found in DB",
+                               config.logFile);
+                    continue;
+                }
+                const NodeInfo &pinfo = it->second;
+                sockaddr_in addr{};
+                addr.sin_family = AF_INET;
+                addr.sin_port   = htons(pinfo.port);
+                inet_pton(AF_INET, pinfo.ipAddress.c_str(), &addr.sin_addr);
+
+                for (auto &seq : seqs) {
+                    std::string pullMsg = "Header:Pull|Seq:" + seq;
+                    sendMessage(sockFd, pullMsg, addr, config.logFile);
+
+                    std::ostringstream oss;
+                    oss << "Node " << config.nodeId
+                        << " => PULL chunkId=" << seq
+                        << " from " << pid;
+                    logMessage(oss.str(), config.logFile);
+                }
+            }
+
+            // 3) Another short read for the immediate Push responses
+            inbound = timedReceiveAll(sockFd, nodeDatabase, config.logFile, 400);
+            for (auto &pair : inbound) {
+                const sockaddr_in &senderAddr = pair.first;
+                const std::string &msg        = pair.second;
+
+                int senderPort = ntohs(senderAddr.sin_port);
+                std::string partnerId = getNodeIdFromPort(senderPort, nodeDatabase);
+
+                std::ostringstream oss;
+                oss << "Node " << config.nodeId
+                    << " (PULL phase, post-pull read) from " << partnerId
+                    << " => " << msg;
+                logMessage(oss.str(), config.logFile);
+
+                if (msg.find("Header:Pull") != std::string::npos) {
+                    std::string seq = extractField(msg, "Seq");
+                    if (!seq.empty() && ownedChunks.count(seq)) {
+                        // push it
+                        std::string pushMsg = "Header:Push|Seq:" + seq
+                                              + "|Raw:" + chunkStorage[seq];
+                        sendMessage(sockFd, pushMsg, senderAddr, config.logFile);
+
+                        logMessage("Node " + config.nodeId
+                                   + " => PUSH chunkId=" + seq
+                                   + " to " + partnerId,
+                                   config.logFile);
+                    }
+                }
+                else if (msg.find("Header:Push") != std::string::npos) {
+                    std::string seq = extractField(msg, "Seq");
+                    std::string raw = extractField(msg, "Raw");
+                    if (!seq.empty() && !ownedChunks.count(seq)) {
+                        ownedChunks.insert(seq);
+                        chunkStorage[seq] = raw;
+
+                        logMessage("Node " + config.nodeId
+                                   + " STORED chunkId=" + seq
+                                   + " from " + partnerId,
+                                   config.logFile);
+                    }
+                }
+                else if (msg.find("Header:Propose") != std::string::npos) {
+                    // If we get a new propose now, we can decide to pull it
+                    std::string seq = extractField(msg, "Seq");
+                    if (!seq.empty() && !ownedChunks.count(seq)) {
+                        // we can do an immediate pull or store it for next
+                        std::string pullMsg = "Header:Pull|Seq:" + seq;
+                        sendMessage(sockFd, pullMsg, senderAddr, config.logFile);
+
+                        logMessage("Node " + config.nodeId
+                                   + " => PULL chunkId=" + seq
+                                   + " from " + partnerId,
+                                   config.logFile);
                     }
                 }
             }
         }
-        // If no activity is seen for a while, exit early.
-        if (std::chrono::steady_clock::now() - lastActivity > inactivityThreshold) {
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    } catch (const std::exception &ex) {
+        logMessage("Exception in nodeLoopOneRound: " + std::string(ex.what()),
+                   config.logFile);
     }
 
-    // 7) Log final owned chunks after the round.
+    // 4) Log final ownership
     {
         std::ostringstream oss;
-        oss << "Node " << config.nodeId << " final ownership after round " << roundNumber << ": [";
+        oss << "Node " << config.nodeId << " final ownership after round "
+            << roundNumber << ": [";
         bool first = true;
-        for (const auto &cid : ownedChunks) {
+        for (auto &cid : ownedChunks) {
             if (!first) oss << ", ";
             first = false;
             oss << cid;
@@ -233,11 +402,17 @@ void nodeLoopOneRound(
         logMessage(oss.str(), config.logFile);
     }
 
-    // 8) Close the socket and finish the round.
+    // [Optional] Sleep a short while to let the round finish nicely
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // 5) Close the socket
     close(sockFd);
-    logMessage("Node " + config.nodeId + " finished optimized round " +
-               std::to_string(roundNumber) + " and socket closed.", config.logFile);
+    logMessage("Node " + config.nodeId + " finished round "
+               + std::to_string(roundNumber)
+               + ", socket closed.",
+               config.logFile);
 }
+
 
 struct AuditResponseParts {
     int expectedTotal = -1; // Set when first received
@@ -328,7 +503,7 @@ void auditLoop(const std::vector<std::string>& auditPartners,
                             // Format: Header:AuditLogEntry|<nodeId>|<seq>/<total>|<entry JSON>
                             outMsg << "Header:AuditLogEntry|" << config.nodeId << "|" << (i+1) << "/" << total << "|" << entry;
                             std::string response = outMsg.str();
-                            sendMessageWithLog(auditSock, response, sender, config.logFile, config.nodeId);
+                            sendMessage(auditSock, response, sender, config.logFile);
                             logMessage("Sent audit log entry " + std::to_string(i+1) + "/" + std::to_string(total) +
                                        " to " + std::string(senderIp), config.logFile);
                         }
@@ -392,7 +567,7 @@ void auditLoop(const std::vector<std::string>& auditPartners,
         partnerAddr.sin_family = AF_INET;
         partnerAddr.sin_port = htons(partnerInfo.port); // using their normal port
         inet_pton(AF_INET, partnerInfo.ipAddress.c_str(), &partnerAddr.sin_addr);
-        sendMessageWithLog(auditSock, "Header:AuditRequest", partnerAddr, config.logFile, config.nodeId);
+        sendMessage(auditSock, "Header:AuditRequest", partnerAddr, config.logFile);
         logMessage("Sent audit request to partner " + pid, config.logFile);
     }
     // Collect responses for a fixed period.
@@ -491,7 +666,7 @@ void auditLoop(const std::vector<std::string>& auditPartners,
             addr.sin_family = AF_INET;
             addr.sin_port = htons(node.port);
             inet_pton(AF_INET, node.ipAddress.c_str(), &addr.sin_addr);
-            sendMessageWithLog(auditSock, blameMessage, addr, config.logFile, config.nodeId);
+            sendMessage(auditSock, blameMessage, addr, config.logFile);
             logMessage("Sent blame message to node " + nodePair.first, config.logFile);
         }
         // Write blame file.
@@ -507,14 +682,7 @@ void auditLoop(const std::vector<std::string>& auditPartners,
         }
     }
 
-        // MISE À JOUR : ajouter les noeuds suspects au global afin qu'ils ne soient plus sélectionnés
-    {
-        std::lock_guard<std::mutex> lock(suspectedNodesMutex);
-        for (const auto &suspect : suspectedNodes) {
-            globalSuspectedNodes.insert(suspect);
-        }
-    }
-
+    // Close the audit socket and exit the round.
     close(auditSock);
     logMessage("Audit cycle completed. Exiting audit loop.", config.logFile);
 }
@@ -527,7 +695,7 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        // 1) Parse de la configuration et des hôtes.
+        // 1) Parse configuration and hosts.
         logMessage("Parsing configuration file...", "debug.log");
         NodeConfig config = parseConfigFile(argv[2]);
         logMessage("Configuration parsed successfully: Node ID = " + config.nodeId, "debug.log");
@@ -542,7 +710,7 @@ int main(int argc, char* argv[]) {
                        ", Port: " + std::to_string(node.port), "debug.log");
         }
 
-        // 2) Ajouter le noeud courant à la membership.
+        // 2) Add current node to membership.
         logMessage("Adding current node to membership...", "debug.log");
         if (!addNode({config.nodeId, nodeDatabase[config.nodeId].ipAddress, config.port}, config.logFile)) {
             logMessage("Node already exists in membership: " + config.nodeId, config.logFile);
@@ -550,7 +718,7 @@ int main(int argc, char* argv[]) {
             logMessage("Node added to membership successfully: " + config.nodeId, config.logFile);
         }
 
-        // 3) Lancer le thread de join request.
+        // 3) Start join request thread.
         logMessage("Starting join request thread...", "debug.log");
         std::thread joinRequestThread([&]() {
             try {
@@ -565,29 +733,18 @@ int main(int argc, char* argv[]) {
         joinRequestThread.join();
         logMessage("Join request thread joined; membership established.", "debug.log");
 
-        // 4) Déterminer si ce noeud est le noeud source.
+        // 4) Determine if this node is the source node.
         logMessage("Determining if this node is the source node...", "debug.log");
         bool isSourceNode = (config.nodeId == config.sourceNode);
 
-        // 5) Boucle de simulation : alterner entre rounds de dissémination et cycles d'audit.
+        // 5) Simulation loop: alternate between dissemination rounds and audit cycles.
         const auto simulationStart = std::chrono::steady_clock::now();
-        const std::chrono::minutes simulationDuration(15); // Simulation de 15 minutes.
+        const std::chrono::minutes simulationDuration(5); // 15 minutes simulation.
         int roundNumber = 1;
         while (std::chrono::steady_clock::now() - simulationStart < simulationDuration) {
-            // MISE À JOUR : filtrer les noeuds suspects avant la sélection des partenaires.
-            std::unordered_map<std::string, NodeInfo> filteredDatabase;
-            {
-                std::lock_guard<std::mutex> lock(suspectedNodesMutex);
-                for (const auto &entry : nodeDatabase) {
-                    if (globalSuspectedNodes.find(entry.first) == globalSuspectedNodes.end()) {
-                        filteredDatabase.insert(entry);
-                    }
-                }
-            }
-            
-            // Sélection des partenariats en utilisant uniquement les noeuds non suspectés.
+            // Partnership selection in main.
             PartnershipManager pm(config.nodeId, MAX_PARTNERS, PARTNERSHIP_PERIOD, config.logFile);
-            pm.updatePartnerships(roundNumber, filteredDatabase);
+            pm.updatePartnerships(roundNumber, nodeDatabase);
             auto partnersSet = pm.getCurrentPartners();
             std::vector<std::string> currentPartners(partnersSet.begin(), partnersSet.end());
             {
@@ -598,7 +755,7 @@ int main(int argc, char* argv[]) {
                 logMessage(oss.str(), config.logFile);
             }
 
-            // Alterner : rounds impairs pour la dissémination, pairs pour l'audit.
+            // Alternate rounds: odd rounds run dissemination, even rounds run audit.
             if (roundNumber % 2 == 1) {
                 logMessage("Round " + std::to_string(roundNumber) + ": Starting dissemination round.", config.logFile);
                 nodeLoopOneRound(roundNumber, config, nodeDatabase, isSourceNode, currentPartners);
@@ -614,7 +771,7 @@ int main(int argc, char* argv[]) {
         }
 
         logMessage("Simulation complete. Shutting down.", "debug.log");
-        running = false; // Signaler la fin aux éventuelles boucles.
+        running = false; // Signal any loops to end.
     }
     catch (const std::exception &e) {
         logMessage("Error: " + std::string(e.what()), "error.log");

@@ -8,12 +8,6 @@
         path: "{{ app_path }}"
         state: directory
 
-    - name: Copy application files to nodes
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../roles/setup_environment/files/"
-        dest: "{{ app_path }}/"
-        remote_src: no
-
     - name: Compile the dissemination application
       ansible.builtin.command:
         cmd: make

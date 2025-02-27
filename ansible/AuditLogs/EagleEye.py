@@ -5,9 +5,10 @@ from scapy.all import *
 from concurrent.futures import ThreadPoolExecutor
 
 class TamperEvidentLogs:
-    def __init__(self, input_dir="files", output_dir="logs"):
+    def __init__(self, input_dir="files", output_dir="logs", input_file=None):
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.input_file = input_file
         self.setup_directories()
 
     def setup_directories(self):
@@ -15,6 +16,8 @@ class TamperEvidentLogs:
         print(f"Output directory '{self.output_dir}' is ready.")
 
     def get_pcap_files(self):
+        if self.input_file:
+            return [self.input_file] if os.path.isfile(self.input_file) else []
         print(f"Scanning for PCAP files in directory: {self.input_dir}")
         return [os.path.join(self.input_dir, f) for f in os.listdir(self.input_dir) if f.endswith(".pcap")]
 
@@ -27,42 +30,29 @@ class TamperEvidentLogs:
             return []
 
     def make_json_serializable(self, data):
-        """
-        Converts non-serializable objects into a serializable format.
-        """
         if isinstance(data, bytes):
             return data.hex()
-        elif isinstance(data, float):  # Handle potential EDecimal issue
+        elif isinstance(data, float):
             return float(data)
         elif isinstance(data, (list, dict, int, str)):
             return data
         else:
-            return str(data)  # Fallback to string representation
+            return str(data)
 
-    def extract_state_from_raw_data(self, raw_data):
-        """
-        Extracts the state (e.g., 'Propose', 'Pull') from the raw packet data.
-        Assumes the state is encoded as a header field like 'Header:State'.
-        """
+    def extract_field(self, raw_data, field_marker):
         try:
-            # Convert raw data from hex to string
             data_str = bytes.fromhex(raw_data).decode(errors="ignore")
-            # Look for the 'Header:' field
-            state_marker = "Header:"
-            state_start = data_str.find(state_marker)
-            if state_start != -1:
-                state_end = data_str.find('|', state_start)
-                if state_end == -1:
-                    state_end = len(data_str)
-                return data_str[state_start + len(state_marker):state_end].strip()
+            field_start = data_str.find(field_marker)
+            if field_start != -1:
+                field_end = data_str.find('|', field_start)
+                if field_end == -1:
+                    field_end = len(data_str)
+                return data_str[field_start + len(field_marker):field_end].strip()
         except Exception as e:
-            return f"Error extracting state: {e}"
+            return f"Error extracting field {field_marker}: {e}"
         return "Unknown"
 
     def generate_log_entry(self, packet, seq_number, previous_hash):
-        """
-        Creates a tamper-evident log entry for a packet.
-        """
         try:
             timestamp = self.make_json_serializable(getattr(packet, "time", "Unknown"))
             source_ip = packet[IP].src if IP in packet else "Unknown"
@@ -71,12 +61,10 @@ class TamperEvidentLogs:
             dport = packet.dport if TCP in packet or UDP in packet else "Unknown"
             protocol = packet[IP].proto if IP in packet else "Unknown"
             raw_data = self.make_json_serializable(bytes(packet))
-            
-            # Extract state from raw data
-            state = self.extract_state_from_raw_data(raw_data)
 
-            # Log type and content
-            tk = "packet"
+            state = self.extract_field(raw_data, "Header:")
+            chunk_id = self.extract_field(raw_data, "Seq:")
+
             ck = {
                 "timestamp": timestamp,
                 "source_ip": source_ip,
@@ -85,18 +73,16 @@ class TamperEvidentLogs:
                 "dest_port": dport,
                 "protocol": protocol,
                 "raw_data": raw_data,
-                "state": state,  # Add extracted state to the content
+                "state": state,
+                "chunk_id": chunk_id,
             }
 
-
-            entry_hash = hashlib.sha256(f"{previous_hash}{seq_number}{tk}{raw_data}".encode()).hexdigest()
-
-            # Authenticator (mocked as a simple signature for this example)
+            entry_hash = hashlib.sha256(f"{previous_hash}{seq_number}packet{raw_data}".encode()).hexdigest()
             authenticator = hashlib.sha256(f"auth:{entry_hash}".encode()).hexdigest()
 
             return {
                 "sequence_number": seq_number,
-                "type": tk,
+                "type": "packet",
                 "content": ck,
                 "hash": entry_hash,
                 "authenticator": authenticator,
@@ -112,9 +98,6 @@ class TamperEvidentLogs:
             }
 
     def process_pcap_file(self, pcap_file):
-        """
-        Processes a single PCAP file and creates tamper-evident logs.
-        """
         print(f"Processing PCAP file: {pcap_file}")
         packets = self.read_pcap(pcap_file)
         if not packets:
@@ -122,7 +105,7 @@ class TamperEvidentLogs:
             return
 
         log_entries = []
-        previous_hash = "0" * 64  # Base hash
+        previous_hash = "0" * 64
         seq_number = 1
 
         for packet in packets:
@@ -131,16 +114,12 @@ class TamperEvidentLogs:
             previous_hash = entry["hash"]
             seq_number += 1
 
-        # Save the log to a file
         log_file = os.path.join(self.output_dir, os.path.basename(pcap_file).replace(".pcap", "_log.json"))
         with open(log_file, "w") as f:
             json.dump(log_entries, f, indent=4, default=str)
         print(f"Saved tamper-evident log to {log_file}")
 
     def run(self, max_threads=4):
-        """
-        Executes the process for all PCAP files in the input directory.
-        """
         pcap_files = self.get_pcap_files()
         if not pcap_files:
             print("No PCAP files found. Exiting.")
@@ -152,7 +131,6 @@ class TamperEvidentLogs:
                 executor.submit(self.process_pcap_file, pcap_file)
         print("All files processed.")
 
-# Main execution
 if __name__ == "__main__":
     import argparse
 
@@ -160,8 +138,9 @@ if __name__ == "__main__":
     parser.add_argument("--input-dir", type=str, default="files", help="Directory containing PCAP files")
     parser.add_argument("--output-dir", type=str, default="logs", help="Directory to save logs")
     parser.add_argument("--threads", type=int, default=4, help="Number of threads for processing")
+    parser.add_argument("--input-file", type=str, help="Specific PCAP file to process")
 
     args = parser.parse_args()
 
-    tel = TamperEvidentLogs(input_dir=args.input_dir, output_dir=args.output_dir)
+    tel = TamperEvidentLogs(input_dir=args.input_dir, output_dir=args.output_dir, input_file=args.input_file)
     tel.run(max_threads=args.threads)

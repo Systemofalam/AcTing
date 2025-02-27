@@ -2,7 +2,7 @@
 ansible_python_interpreter: /usr/bin/python3
 
 # Relative path to the application directory
-app_path: "{{ playbook_dir }}/../roles/setup_environment/files"
+app_path: "/home/Project/ansible/roles/setup_environment/files"
 
 # Port base for the nodes (dynamic calculation for each node based on its ID)
 port_base: 5000
@@ -14,10 +14,10 @@ num_nodes: 20
 source_node: node1
 
 # Relative path to the logs directory
-log_path: "{{ playbook_dir }}/../../logs/dissemination.log"
+log_path: "/home/Project/ansible/logs/dissemination.log"
 
 # Path to the data file to be disseminated
-data_file: "{{ playbook_dir }}/../roles/setup_environment/data/test_data_file"
+data_file: "/home/Project/ansible/roles/setup_environment/data/test_data_file"
 
 # Duration of dissemination in seconds
 dissemination_duration: 300

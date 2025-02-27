@@ -1,79 +1,135 @@
-- name: Start Dissemination Nodes with Traffic Tracking
+---
+- name: Lancer l'application avec injection de faute, suivi du trafic et mesure de CPU
   hosts: all
   become: no
   vars:
-    app_dir: "{{ playbook_dir }}/../roles/setup_environment/files"
-    binary_path: "{{ app_dir }}/dissemination"
+    # Chemins globaux
+    app_dir: "/home/Project/ansible/roles/setup_environment/files"
     config_dir: "{{ app_dir }}/configs"
-    log_dir: "{{ playbook_dir }}/../logs"
+    log_dir: "/home/Project/ansible/playbooks/../logs"
+    
+    # Pourcentage de nœuds défectueux (ici à 0, à adapter)
+    faulty_percentage: 0
+
+    # Types de nœuds défectueux compilés (cf. votre Makefile)
+    faulty_types:
+      - freeRiderNode
+      #- overloadNode
+      #- silentNode
 
   tasks:
-    - name: Verify dissemination binary exists
-      ansible.builtin.stat:
+    - name: Déterminer le type de nœud pour {{ inventory_hostname }}
+      set_fact:
+        node_type: >-
+          {%- set val = (inventory_hostname | hash('md5') | int(base=16)) % 100 -%}
+          {%- if val < faulty_percentage|int -%}
+            {{ faulty_types | random }}
+          {%- else -%}
+            dissemination
+          {%- endif -%}
+
+    - name: Afficher le type de nœud pour {{ inventory_hostname }}
+      debug:
+        msg: "L'hôte {{ inventory_hostname }} sera lancé en tant que {{ node_type }} (valeur de hachage = {{ (inventory_hostname | hash('md5') | int(base=16)) % 100 }})."
+
+    - name: Définir le chemin du binaire en fonction du type de nœud
+      set_fact:
+        binary_path: "{{ app_dir }}/{{ node_type }}"
+
+    - name: Vérifier que le binaire {{ node_type }} existe sur {{ inventory_hostname }}
+      stat:
         path: "{{ binary_path }}"
-      register: dissemination_binary
+      register: binary_check
 
-    - name: Ensure dissemination binary is available
-      ansible.builtin.fail:
-        msg: "The dissemination binary is missing at {{ binary_path }}. Please compile it first."
-      when: not dissemination_binary.stat.exists
+    - name: Échouer si le binaire {{ node_type }} est introuvable
+      fail:
+        msg: "Le binaire pour {{ node_type }} est introuvable à {{ binary_path }}. Veuillez le compiler d'abord."
+      when: not binary_check.stat.exists
 
-    - name: Ensure configuration directory exists
-      ansible.builtin.file:
+    - name: S'assurer que le répertoire de configuration existe
+      file:
         path: "{{ config_dir }}"
         state: directory
         mode: '0755'
 
-    - name: Ensure log directory exists
-      ansible.builtin.file:
+    - name: S'assurer que le répertoire des logs existe
+      file:
         path: "{{ log_dir }}"
         state: directory
         mode: '0755'
 
-    - name: Generate configuration for the node
-      ansible.builtin.template:
+    - name: Générer le fichier de configuration pour {{ inventory_hostname }}
+      template:
         src: "{{ playbook_dir }}/../roles/run_node/templates/node_config.j2"
         dest: "{{ config_dir }}/node_config_{{ inventory_hostname }}.conf"
       vars:
-        node_port: "{{ ansible_port }}"
-        log_file: "{{ log_dir }}/dissemination_{{ inventory_hostname }}.log"
+        node_port: "{{ ansible_port | default(5000) }}"
+        log_file: "{{ log_dir }}/{{ node_type }}_{{ inventory_hostname }}.log"
 
-    - name: Start dissemination application
-      ansible.builtin.shell: |
-        nohup {{ binary_path }} \
-        --config {{ config_dir }}/node_config_{{ inventory_hostname }}.conf \
-        >> {{ log_dir }}/dissemination_{{ inventory_hostname }}.log 2>&1 &
-        echo "Started node {{ inventory_hostname }} on port {{ ansible_port }}" >> {{ log_dir }}/node_tracking.log
-      args:
-        executable: /bin/bash
-
-    - name: Verify tshark is installed
-      ansible.builtin.shell: |
-        tshark -v
+    - name: Vérifier que tshark est installé sur {{ inventory_hostname }}
+      shell: tshark -v
       register: tshark_check
       failed_when: tshark_check.rc != 0
       changed_when: no
 
-    - name: Fail if tshark is not installed
-      ansible.builtin.fail:
-        msg: "TShark is not installed on {{ inventory_hostname }}. Please install it first."
+    - name: Échouer si tshark n'est pas installé sur {{ inventory_hostname }}
+      fail:
+        msg: "TShark n'est pas installé sur {{ inventory_hostname }}. Veuillez l'installer d'abord."
       when: tshark_check.rc != 0
 
-    - name: Start tshark for traffic capture
-      ansible.builtin.shell: |
-        nohup tshark -i lo -f "udp port {{ ansible_port }}" \
-        -w {{ log_dir }}/traffic_{{ inventory_hostname }}_{{ ansible_port }}.pcap \
+    # --- Lancement de la capture du trafic ---
+    - name: Lancer tshark pour la capture du trafic sur hihih please {{ inventory_hostname }}
+      shell: |
+        nohup tshark -i lo -f "udp and src port {{ ansible_port | default(5000) }}" \
+        -F pcap -w {{ log_dir }}/traffic_{{ inventory_hostname }}_{{ ansible_port | default(5000) }}.pcap \
         >> {{ log_dir }}/tshark_{{ inventory_hostname }}.log 2>&1 &
       args:
         executable: /bin/bash
 
-    - name: Wait for nodes to finish
-      ansible.builtin.pause:
-        seconds: 300
-
-    - name: Stop tshark after capture
-      ansible.builtin.shell: |
-        pkill -f "tshark.*udp port {{ ansible_port }}"
+    # --- Lancement de l'application ---
+    - name: Lancer l'application sur {{ inventory_hostname }}
+      shell: |
+        nohup {{ binary_path }} \
+        --config {{ config_dir }}/node_config_{{ inventory_hostname }}.conf \
+        >> {{ log_dir }}/{{ node_type }}_{{ inventory_hostname }}.log 2>&1 &
+        echo "Started node {{ inventory_hostname }} ({{ node_type }}) on port {{ ansible_port | default(5000) }}" >> {{ log_dir }}/node_tracking.log
       args:
         executable: /bin/bash
-      when: ansible_port is defined
+
+    # --- Mesure de la consommation CPU pendant l'exécution ---
+    - name: Démarrer la capture de l'utilisation du CPU pendant 300 secondes sur {{ inventory_hostname }}
+      shell: mpstat 1 300 > {{ log_dir }}/cpu_usage_during_{{ inventory_hostname }}.log
+      args:
+        executable: /bin/bash
+      async: 900
+      poll: 0
+
+    # --- Optionnel : Suivi spécifique du processus via pidstat ---
+    - name: Obtenir le PID de l'application sur {{ inventory_hostname }}
+      shell: pgrep -f "{{ binary_path }}"
+      register: app_pid
+      changed_when: false
+
+    - name: Surveiller la consommation CPU du processus avec pidstat pendant 300 secondes sur {{ inventory_hostname }}
+      shell: pidstat -h -r -u -p {{ app_pid.stdout }} 1 300 > {{ log_dir }}/pidstat_{{ inventory_hostname }}.log
+      args:
+        executable: /bin/bash
+      async: 900
+      poll: 0
+      when: app_pid.stdout != ""
+
+    # --- Pause pour la durée de diffusion (600 secondes) ---
+    - name: Attendre la durée de diffusion (600 secondes)
+      pause:
+        seconds: 900
+
+    # --- Arrêter tshark après la capture ---
+    - name: Arrêter tshark après la capture sur {{ inventory_hostname }}
+      shell: pkill -f "tshark.*udp port {{ ansible_port | default(5000) }}"
+      args:
+        executable: /bin/bash
+
+
+    - name: Afficher le résumé de la consommation CPU sur {{ inventory_hostname }}
+      debug:
+        msg: "{{ lookup('file', log_dir + '/cpu_summary_' + inventory_hostname + '.log') }}"
