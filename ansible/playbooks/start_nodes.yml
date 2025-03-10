@@ -13,9 +13,10 @@
 
     # Types de nœuds défectueux compilés (cf. votre Makefile)
     faulty_types:
-      - freeRiderNode
-      #- overloadNode
-      #- silentNode
+     - freeRiderNode
+     - overloadNode
+     - silentNode
+     - PolluentNode
 
   tasks:
     - name: Déterminer le type de nœud pour {{ inventory_hostname }}

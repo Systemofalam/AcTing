@@ -51,6 +51,7 @@
         - "{{ playbook_dir }}/logs"
         - "{{ config_dir }}"
         - "{{ app_dir }}/dissemination"
+        - "{{ app_dir }}/freeRiderNode"
       ignore_errors: true
 
     - name: Ensure cleanup is logged

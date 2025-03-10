@@ -1,41 +1,59 @@
 #ifndef PARTNERSHIPS_H
 #define PARTNERSHIPS_H
 
+#include <string>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
-#include <string>
-#include <random>
-#include <mutex>
-#include "membership.h" // For NodeInfo
-#include "acting_utils.h" // For logging utilities
+
+// Ensure that NodeInfo is defined (e.g., in membership.h).
+#include "membership.h"
 
 class PartnershipManager {
 public:
-    PartnershipManager(const std::string &nodeId, int maxPartners, int partnershipPeriod, const std::string &logFile);
-    void updatePartnerships(int roundNumber, const std::unordered_map<std::string, NodeInfo> &membershipList);
+    // Constructor.
+    // nodeId: This node's identifier.
+    // maxPartners: Maximum number of partners to select.
+    // partnershipPeriod: Round period after which current partnerships expire.
+    // logFile: Path to the log file.
+    PartnershipManager(const std::string &nodeId,
+                       int maxPartners,
+                       int partnershipPeriod,
+                       const std::string &logFile);
+
+    // Computes a deterministic score based on two node IDs and roundNumber.
+    size_t computeScore(const std::string &from,
+                        const std::string &to,
+                        int roundNumber) const;
+
+    // Updates the partnerships for the current round using a global greedy matching
+    // method that enforces bidirectionality.
+    void updatePartnerships(int roundNumber,
+                            const std::unordered_map<std::string, NodeInfo> &membershipList);
+
+    // Terminates (clears) partnerships if the expiration condition is met.
     void terminateExpiredPartnerships(int roundNumber);
+
+    // Returns the current set of partners.
     std::unordered_set<std::string> getCurrentPartners() const;
+
+    // Logs the current active partnerships.
     void logCurrentPartnerships() const;
+
+    // Adds a node to the suspicion list.
     void addToSuspicion(const std::string &suspectNode);
 
-private:
-    std::string nodeId;                // Identifier of this node
-    int maxPartners;                   // Maximum number of partnerships
-    int partnershipPeriod;             // Number of rounds before partnerships are re-evaluated
-    std::string logFile;               // File to log partnership updates
-
-    mutable std::mutex partnershipMutex; // Mutex for thread-safe access
-    std::unordered_set<std::string> currentPartners; // Current set of active partners
-    std::unordered_set<std::string> suspicionList;
-    std::mt19937 randomGenerator;      // Random number generator for selecting partners
-
-    std::vector<std::string> selectRandomPartners(int count, const std::unordered_map<std::string, NodeInfo> &membershipList);
+    // Logs an event to the log file and to the console.
     void logEvent(const std::string &message) const;
-    size_t computeScore(const std::string &from, const std::string &to, int roundNumber) const;
-    int getRankInCandidateList(const std::string &candidate,
-                               const std::unordered_map<std::string, NodeInfo> &membershipList,
-                               int roundNumber) const;
+
+private:
+    // Data members.
+    std::string nodeId;
+    int maxPartners;
+    int partnershipPeriod;
+    std::string logFile;
+    std::unordered_set<std::string> currentPartners;
+    std::unordered_set<std::string> suspicionList;
 };
 
 #endif // PARTNERSHIPS_H

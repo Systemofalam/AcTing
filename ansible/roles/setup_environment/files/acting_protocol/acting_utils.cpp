@@ -15,10 +15,6 @@
 #include <unistd.h>
 #include <thread> // Required for std::this_thread::sleep_for
 #include <chrono> // Required for std::chrono::seconds
-#include <algorithm>
-#include <cctype>
-
-
 
 
 // Helper Mutex for Logging
@@ -68,26 +64,31 @@ std::vector<std::string> readDataChunks(const std::string& dataFilePath) {
 
 // Create and Bind a UDP Socket
 int createAndBindSocket(int port, const std::string &logFile) {
-    int sockFd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockFd < 0) {
-        logMessage("Error: Socket creation failed (Error: " + std::string(strerror(errno)) + ")", logFile);
-        exit(EXIT_FAILURE);
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        logMessage("Error: Socket creation failed", logFile);
+        return -1;
     }
+    int opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+        logMessage("Warning: setsockopt(SO_REUSEADDR) failed", logFile);
+#ifdef SO_REUSEPORT
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
+        logMessage("Warning: setsockopt(SO_REUSEPORT) failed", logFile);
+#endif
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(sockFd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        logMessage("Error: Socket binding failed on port " + std::to_string(port) + " (Error: " + std::string(strerror(errno)) + ")", logFile);
-        close(sockFd);
-        exit(EXIT_FAILURE);
+    addr.sin_port = htons(port);
+    if (bind(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) < 0) {
+        logMessage("Error: Socket binding failed on port " + std::to_string(port) + " (" + strerror(errno) + ")", logFile);
+        close(sock);
+        return -1;
     }
-
-    logMessage("Socket bound successfully. Node is listening on port " + std::to_string(port), logFile);
-    return sockFd;
+    return sock;
 }
+
 
 // Function to generate a unique sequence number
 std::string generateSequenceNumber(int chunkIndex) {

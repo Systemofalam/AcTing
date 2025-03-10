@@ -21,6 +21,7 @@ std::string computeLogEntryHash(const std::string &previousHash, int sequenceNum
 std::string extractField(const json &content, const std::string &key);
 
 // Audit function
-int auditLog(const std::string &logFilePath);
+int auditLog(const std::string &logFilePath, const std::unordered_set<std::string> &designatedChunks = {});
+
 
 #endif // AUDIT_LOG_H

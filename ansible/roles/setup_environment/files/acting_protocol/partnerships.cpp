@@ -1,17 +1,19 @@
+// partnerships.cpp
 #include "partnerships.h"
 
 #include <algorithm>
 #include <chrono>
-#include <cctype>     // For std::isdigit
+#include <cctype>
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_set>
+#include <unordered_map>
 
-// Helper function to extract the numeric portion from a node ID (e.g., "node1" returns 1).
+// Helper: extract numeric portion from a node ID (e.g., "node12" returns 12).
 static int extractNumericNodeId(const std::string &nodeId) {
     int num = 0;
     for (char c : nodeId) {
@@ -21,6 +23,27 @@ static int extractNumericNodeId(const std::string &nodeId) {
     }
     return num;
 }
+
+// Structure representing an unordered edge between two nodes.
+struct Edge {
+    std::string u;
+    std::string v;
+    size_t weight;  // Lower weight indicates a stronger (better) pairing.
+};
+
+// Compare edges by weight (ascending). Tie-break using u then v.
+static bool compareEdges(const Edge &e1, const Edge &e2) {
+    if (e1.weight == e2.weight) {
+        if (e1.u == e2.u)
+            return e1.v < e2.v;
+        return e1.u < e2.u;
+    }
+    return e1.weight < e2.weight;
+}
+
+//////////////////////
+// PartnershipManager
+//////////////////////
 
 // Constructor.
 PartnershipManager::PartnershipManager(const std::string &nodeId,
@@ -32,75 +55,117 @@ PartnershipManager::PartnershipManager(const std::string &nodeId,
     logEvent("PartnershipManager initialized for node: " + nodeId);
 }
 
-// Deterministic score: lower is better.
-// Computes a hash-based score using a combination of (from, to, roundNumber).
-size_t PartnershipManager::computeScore(const std::string &from, const std::string &to, int roundNumber) const {
+// Computes a deterministic (one-way) score.
+size_t PartnershipManager::computeScore(const std::string &from,
+                                        const std::string &to,
+                                        int roundNumber) const {
     std::hash<std::string> hasher;
     std::string input = from + "_" + to + "_" + std::to_string(roundNumber);
     return hasher(input);
 }
 
-// Update our partnerships for the current round using symmetric selection.
-// For each candidate, we compute a symmetric score defined as:
-//   symmetricScore = min( computeScore(ourNode, candidate, roundNumber),
-//                           computeScore(candidate, ourNode, roundNumber) )
-// Then we sort all eligible candidates (excluding self and suspected nodes) by the symmetric score
-// and select the top maxPartners. This guarantees bidirectionality if all nodes use the same algorithm.
-void PartnershipManager::updatePartnerships(int roundNumber, const std::unordered_map<std::string, NodeInfo> &membershipList) {
+// Update partnerships using a global greedy b-matching algorithm.
+// This algorithm computes all unordered edges (u,v) among eligible nodes (excluding self and suspicious nodes).
+// Each edge’s weight is the minimum of computeScore(u,v) and computeScore(v,u). Then, edges are sorted
+// in ascending order. Iterating through the sorted edges, an edge is accepted if both endpoints have not
+// yet reached maxPartners. Because an edge is added only when both endpoints are available, the matching
+// is bidirectional.
+// To reduce bias, the list of nodes is sorted using a deterministic randomized order (seeded with roundNumber).
+void PartnershipManager::updatePartnerships(int roundNumber,
+                                            const std::unordered_map<std::string, NodeInfo> &membershipList) {
     logEvent("Updating partnerships for round: " + std::to_string(roundNumber));
 
     int numericNodeId = extractNumericNodeId(nodeId);
-    // Expire current partnerships if needed.
+    // Optional: clear partnerships on expiration.
     if ((numericNodeId + roundNumber) % partnershipPeriod == 0) {
         logEvent("Partnership period expired. Clearing current partnerships.");
         currentPartners.clear();
     }
-
-    // Build a vector of candidates: each candidate is paired with its symmetric score.
-    std::vector<std::pair<size_t, std::string>> candidates;
+    
+    // Build a list of eligible nodes (exclude self and suspicious nodes).
+    std::vector<std::string> nodes;
     for (const auto &entry : membershipList) {
-        const std::string &candidateId = entry.first;
-        if (candidateId == nodeId)
-            continue; // Exclude self.
-        if (suspicionList.find(candidateId) != suspicionList.end()) {
-            logEvent("Excluding candidate " + candidateId + " (suspected).");
+        if (entry.first == nodeId)
             continue;
-        }
-        size_t scoreOurToCandidate = computeScore(nodeId, candidateId, roundNumber);
-        size_t scoreCandidateToOur = computeScore(candidateId, nodeId, roundNumber);
-        size_t symmetricScore = std::min(scoreOurToCandidate, scoreCandidateToOur);
-        candidates.push_back({symmetricScore, candidateId});
+        if (suspicionList.find(entry.first) != suspicionList.end())
+            continue;
+        nodes.push_back(entry.first);
     }
-
-    if (candidates.empty()) {
-        logEvent("No eligible nodes available for partnerships.");
-        return;
-    }
-
-    // Sort candidates by their symmetric score (ascending).
-    std::sort(candidates.begin(), candidates.end(), [](const auto &a, const auto &b) {
-        return a.first < b.first;
+    // Sort nodes by a deterministic randomized order (using roundNumber as seed).
+    std::sort(nodes.begin(), nodes.end(), [&](const std::string &a, const std::string &b) {
+        size_t ha = std::hash<std::string>{}(a + "_" + std::to_string(roundNumber));
+        size_t hb = std::hash<std::string>{}(b + "_" + std::to_string(roundNumber));
+        return ha < hb;
     });
-
-    // Select the top maxPartners candidates.
-    std::unordered_set<std::string> newPartners;
-    for (size_t i = 0; i < candidates.size() && newPartners.size() < static_cast<size_t>(maxPartners); i++) {
-        newPartners.insert(candidates[i].second);
+    
+    // Build all unordered edges among these nodes.
+    std::vector<Edge> edges;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        for (size_t j = i + 1; j < nodes.size(); j++) {
+            Edge e;
+            e.u = nodes[i];
+            e.v = nodes[j];
+            e.weight = std::min(computeScore(e.u, e.v, roundNumber),
+                                computeScore(e.v, e.u, roundNumber));
+            edges.push_back(e);
+        }
     }
-
-    currentPartners = newPartners;
-
-    // Log the final partnerships for this round.
+    std::sort(edges.begin(), edges.end(), compareEdges);
+    
+    // Initialize degree counts for every eligible node (including self).
+    std::unordered_map<std::string, int> degree;
+    degree[nodeId] = 0;
+    for (const auto &entry : membershipList) {
+        if (entry.first == nodeId)
+            continue;
+        if (suspicionList.find(entry.first) == suspicionList.end())
+            degree[entry.first] = 0;
+    }
+    
+    // Greedy matching: iterate through edges and add an edge if both endpoints have not reached maxPartners.
+    std::unordered_set<std::string> myPartners;
+    for (const auto &e : edges) {
+        if (degree[e.u] < maxPartners && degree[e.v] < maxPartners) {
+            degree[e.u]++;
+            degree[e.v]++;
+            // Record the partner for our node.
+            if (e.u == nodeId)
+                myPartners.insert(e.v);
+            if (e.v == nodeId)
+                myPartners.insert(e.u);
+        }
+    }
+    
+    // Fallback: if we have fewer than maxPartners, fill in from our own candidate ranking.
+    if (myPartners.size() < static_cast<size_t>(maxPartners)) {
+        std::vector<std::pair<size_t, std::string>> desired;
+        for (const auto &entry : membershipList) {
+            if (entry.first == nodeId)
+                continue;
+            if (suspicionList.find(entry.first) != suspicionList.end())
+                continue;
+            size_t symScore = std::min(computeScore(nodeId, entry.first, roundNumber),
+                                        computeScore(entry.first, nodeId, roundNumber));
+            desired.push_back({symScore, entry.first});
+        }
+        std::sort(desired.begin(), desired.end(), [](const auto &a, const auto &b) {
+            return (a.first == b.first) ? (a.second < b.second) : (a.first < b.first);
+        });
+        for (size_t i = 0; i < desired.size() && myPartners.size() < static_cast<size_t>(maxPartners); i++) {
+            myPartners.insert(desired[i].second);
+        }
+    }
+    
+    currentPartners = myPartners;
+    
     std::ostringstream oss;
     oss << "Total bidirectional partnerships established: " << currentPartners.size() << ". Partners:";
-    for (const auto &partner : currentPartners) {
+    for (const auto &partner : currentPartners)
         oss << " " << partner;
-    }
     logEvent(oss.str());
 }
 
-// Terminate partnerships if the expiration condition is met.
-// In this case, if (numericNodeId + roundNumber) mod partnershipPeriod equals 0, we clear current partnerships.
+// Terminates partnerships if the expiration condition is met.
 void PartnershipManager::terminateExpiredPartnerships(int roundNumber) {
     int numericNodeId = extractNumericNodeId(nodeId);
     if ((numericNodeId + roundNumber) % partnershipPeriod == 0) {
@@ -111,12 +176,12 @@ void PartnershipManager::terminateExpiredPartnerships(int roundNumber) {
     }
 }
 
-// Return the current set of partners.
+// Returns the current set of partners.
 std::unordered_set<std::string> PartnershipManager::getCurrentPartners() const {
     return currentPartners;
 }
 
-// Log the current active partnerships.
+// Logs the current active partnerships.
 void PartnershipManager::logCurrentPartnerships() const {
     std::ostringstream oss;
     oss << "Current active bidirectional partnerships:";
@@ -126,13 +191,13 @@ void PartnershipManager::logCurrentPartnerships() const {
     logEvent(oss.str());
 }
 
-// Add a node to the suspicion list.
+// Adds a node to the suspicion list.
 void PartnershipManager::addToSuspicion(const std::string &suspectNode) {
     suspicionList.insert(suspectNode);
     logEvent("Node " + suspectNode + " added to suspicion list.");
 }
 
-// Log an event to the log file and also print it to the console.
+// Logs an event to the log file and prints it to the console.
 void PartnershipManager::logEvent(const std::string &message) const {
     std::ofstream logStream(logFile, std::ios::app);
     if (logStream.is_open()) {

@@ -14,7 +14,7 @@ COMMON_OBJS = acting_protocol/membership.o acting_protocol/acting_utils.o \
               acting_protocol/partnerships.o acting_protocol/audit.o
 
 # Targets (each source file with main becomes its own executable)
-TARGETS = dissemination freeRiderNode overloadNode silentNode
+TARGETS = dissemination freeRiderNode overloadNode silentNode PolluentNode
 
 all: $(TARGETS)
 
@@ -32,6 +32,10 @@ overloadNode: overloadNode.o $(COMMON_OBJS)
 
 # Silent node
 silentNode: silentNode.o $(COMMON_OBJS)
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
+
+# Polluent node
+PolluentNode: PolluentNode.o $(COMMON_OBJS)
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
 # Pattern rule to compile any .cpp into a .o
